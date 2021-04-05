@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.0.0)
 project(Vk-Trial VERSION 0.1.0)
 
+include(BuildUtilities.cmake)
+
 # Set a default build type if none was specified
 if(NOT CMAKE_BUILD_TYPE OR NOT CMAKE_CONFIGURATION_TYPES)
   message(STATUS "Setting build type to 'Debug' as none was specified.")
@@ -14,9 +16,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if(WIN32)
-  add_compile_definitions("_UNICODE" "UNICODE" "WIN32_LEAN_AND_MEAN")
-endif()
 if(MSVC)
 add_compile_options("/MP")
 endif()
@@ -67,9 +66,8 @@ else()
   message(FATAL_ERROR "Build type unspecified!")
 endif()
 
-add_compile_definitions("UNICODE" "_UNICODE")
-
 if(MSVC)
+add_compile_definitions("UNICODE" "_UNICODE")
 add_link_options("/NODEFAULTLIB:libcmt.lib")
 endif(MSVC)
 

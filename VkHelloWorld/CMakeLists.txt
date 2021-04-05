@@ -15,43 +15,19 @@ target_link_libraries(
   ${Vulkan_LIBRARIES}
 )
 
-file(GLOB shader_files shaders/*.vert shaders/*.frag
-  shaders/*.rgen shaders/*.rchit shaders/*.rint shaders/*.rmiss)
+file(GLOB SHADER_FILES shaders/*.vert shaders/*.frag)
 
-file(GLOB shader_extra_files shaders/*.glsl)
-set_source_files_properties(${shader_extra_files} PROPERTIES HEADER_FILE_ONLY TRUE)
+file(GLOB SHADER_EXTRA_FILES shaders/*.glsl)
+set_source_files_properties(${SHADER_EXTRA_FILES} PROPERTIES HEADER_FILE_ONLY TRUE)
 
-# Shader compilation
-foreach(shader ${shader_files})
-	#message("SHADER: ${shader}")
-	get_filename_component(file_name ${shader} NAME)
-	get_filename_component(full_path ${shader} ABSOLUTE)
-	set(output_dir ${CMAKE_CURRENT_BINARY_DIR}/${TRIAL_OUTDIR_SUFFIX}/shaders)
-	set(output_file ${output_dir}/${file_name}.spv)
-	set(compiled_shaders ${compiled_shaders} ${output_file})
-	set(compiled_shaders ${compiled_shaders} PARENT_SCOPE)
-	set_source_files_properties(${shader} PROPERTIES HEADER_FILE_ONLY TRUE)
-	if (WIN32)
-        add_custom_command(
-            OUTPUT ${output_file}
-            COMMAND ${Vulkan_GLSLANG_VALIDATOR} -V ${full_path} -o ${output_file}
-            DEPENDS ${full_path}
-        )
-    else()
-        add_custom_command(
-            OUTPUT ${output_file}
-            COMMAND mkdir --parents ${output_dir} && ${Vulkan_GLSLANG_VALIDATOR} -V ${full_path} -o ${output_file}
-            DEPENDS ${full_path}
-        )
-    endif()
-endforeach()
+compile_glsl_to_spirv(SHADER_FILES "shaders" COMPILED_SPIRV_FILES)
 
-source_group("Shaders" FILES ${shader_files} ${shader_extra_files})
+source_group("Shaders" FILES ${SHADER_FILES} ${SHADER_EXTRA_FILES})
 
 add_custom_target(
   ${PROJECT_NAME}GenAssets ALL
-  DEPENDS ${compiled_shaders}
-  SOURCES ${shader_files} ${shader_extra_files}
+  DEPENDS ${COMPILED_SPIRV_FILES}
+  SOURCES ${SHADER_FILES} ${SHADER_EXTRA_FILES}
 )
 
 
