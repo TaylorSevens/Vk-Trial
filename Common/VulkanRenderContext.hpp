@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include "VkUtilities.h"
-#include "GameTimer.h"
+#include "GameTimer.hpp"
 
 struct SwapChainItemContext {
   VkImage pImage;
@@ -19,42 +19,44 @@ struct RendererItemContext {
   void *pUserContext;
 };
 
-class VulkanApp
-{
+class VulkanRenderContext {
 public:
-	VulkanApp(HINSTANCE hInstance);
-	virtual ~VulkanApp();
+  VulkanRenderContext();
+  virtual ~VulkanRenderContext();
 
-	virtual VKHRESULT Initialize();
+  VKHRESULT CreateVkInstance(const char *pAppName);
+  VKHRESULT CreateWindowSurface(void *pOpacHandle);
 
-  VKHRESULT Run();
+  virtual VKHRESULT Initialize();
+
+  VKHRESULT Destroy();
+
+  virtual VKHRESULT Resize(int cx, int cy);
+  virtual VKHRESULT FrameMoved(int xdelta, int ydelta, void *userData) = 0;
+  virtual VKHRESULT FrameZoomed(int xdelta, int ydelta, void *userData) = 0;
+
+  virtual void Update(float fTime, float fElapsedTime);
+  virtual void RenderFrame(float fTime, float fElapsedTime);
+
+  VKHRESULT SetMsaaEnabled(bool bEnabled);
+  bool IsMsaaEnabled() const;
+
+protected:
+  /// Pick a properiate device
+  virtual bool IsDeviceSuitable(VkPhysicalDevice device);
 
   /// Clean up render context.
   virtual void Cleanup();
 
-protected:
-  virtual void Update(float fTime, float fElapsedTime);
-  virtual void RenderFrame(float fTime, float fElapsedTime);
+  VKHRESULT InitVulkan();
 
-  static LRESULT CALLBACK MainWndProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp);
-  LRESULT CALLBACK MsgProc(HWND hwnd, UINT uMsg, WPARAM wp, LPARAM lp);
-  virtual LRESULT OnResize();
-  virtual LRESULT OnMouseEvent(UINT uMsg, WPARAM wParam, int x, int y);
-  virtual LRESULT OnKeyEvent(WPARAM wParam, LPARAM lParam);
-
-	VKHRESULT InitWindow();
-	VKHRESULT InitVulkan();
-
-  VKHRESULT Set4xMsaaEnabled(BOOL bEnabled);
-
-	VKHRESULT CreateVkInstance();
-	VKHRESULT CheckValidationLayerSupport(const char **ppValidationLayers, int nValidationLayerCount);
+  VKHRESULT CheckValidationLayerSupport(const char **ppValidationLayers, int nValidationLayerCount);
   VKHRESULT SetDebugCallback();
-	VKHRESULT PickPhysicalDevice();
+  VKHRESULT PickPhysicalDevice();
   VKHRESULT CreateLogicalDevice();
   uint32_t CalcSwapChainBackBufferCount();
   VKHRESULT CreateGraphicsQueueCommandPool();
-  VKHRESULT CreateWin32Surfaces();
+
   VKHRESULT CreateSwapChain();
   VKHRESULT CreateSwapChainImageViews();
   VKHRESULT CreateSwapChainFBsCompatibleRenderPass();
@@ -64,8 +66,6 @@ protected:
   VKHRESULT RecreateSwapChain();
   void CleanupSwapChain();
   VKHRESULT CreateDepthStencilBuffer();
-
-	bool IsDeviceSuitable(VkPhysicalDevice device);
 
   bool CheckMultisampleSupport(VkPhysicalDevice, uint32_t *puMaxMsaaQualityLevel);
 
@@ -81,27 +81,16 @@ protected:
 
   uint32_t FindMemoryTypeIndex(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
 
-  bool IsMsaaEnabled() const;
-
   struct DeviceFeatureConfig {
-    BOOL MsaaEnabled;      /// Enable MSAA.
-    UINT MsaaQaulityLevel; /// MSAA Quality level.
-    BOOL VsyncEnabled; /// Enable Vsynchronization
-
-    BOOL RaytracingEnabled; /// Enable Ray Tracing
+    bool MsaaEnabled;      /// Enable MSAA.
+    uint32_t MsaaSampleCount;
+    uint32_t MsaaQaulityLevel; /// MSAA Quality level.
+    bool VsyncEnabled;     /// Enable Vsynchronization
+    bool RaytracingEnabled; /// Enable Ray Tracing
   };
 
-  // App handle
-  HINSTANCE m_hAppInst;
-  // Windows misc
-  HWND m_hMainWnd;
-  UINT m_iClientWidth;
-  UINT m_iClientHeight;
-  std::wstring m_MainWndCaption;
-
-  UINT m_uWndSizeState;       /* Window sizing state */
-  bool m_bAppPaused;          /* Is window paused */
-  bool m_bFullScreen;         /* Is window full screen displaying */
+  uint32_t m_iClientWidth;
+  uint32_t m_iClientHeight;
 
   DeviceFeatureConfig m_aDeviceConfig;
 
@@ -109,14 +98,14 @@ protected:
   VkViewport m_Viewport;
   VkRect2D m_ScissorRect;
 
-	VkInstance m_pVkInstance;
+  VkInstance m_pVkInstance;
   VkDebugUtilsMessengerEXT m_pDebugMessenger;
-	VkPhysicalDevice m_pPhysicalDevice;
+  VkPhysicalDevice m_pPhysicalDevice;
   VkDevice m_pDevice;
   int m_iGraphicQueueFamilyIndex;
   int m_iPresentQueueFamilyIndex;
   VkQueue m_pGraphicQueue;
-  VkQueue m_pPresentQueue; /// USed for presentation.
+  VkQueue m_pPresentQueue; /// Used for presentation.
 
   VkCommandPool m_pCommandPool;
 
@@ -133,11 +122,11 @@ protected:
 
   /// Depth and stencil buffer.
   VkImage m_pDepthStencilImage;
-  VMAHandle  m_pDepthStencilBufferMem;
+  VMAHandle m_pDepthStencilBufferMem;
   VkImageView m_pDepthStencilImageView;
 
   /// Surface.
-  VkSurfaceKHR m_pWin32Surface;
+  VkSurfaceKHR m_pWndSurface;
   /// Swap chain.
   VkSwapchainKHR m_pSwapChain;
   uint32_t m_iSwapChainImageCount;
@@ -146,8 +135,4 @@ protected:
   VkFormat m_aDepthStencilFormat;
   VkExtent2D m_aSwapChainExtent;
   VkRenderPass m_pSwapChainFBsCompatibleRenderPass;
-
-  /// Timer used for caculate FPS.
-  GameTimer m_GameTimer;
 };
-

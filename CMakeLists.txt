@@ -60,7 +60,8 @@ if(CMAKE_BUILD_TYPE)
   set(TRIAL_OUTDIR_END_SUFFIX ${CMAKE_BUILD_TYPE})
   set(TRIAL_OUTDIR_SUFFIX ${TRIAL_OUTDIR_END_SUFFIX})
 
-  link_directories(${THIRD_PARTY_DIR}/DirectXTex/build/bin/CMake/${TRIAL_OUTDIR_END_SUFFIX})
+  link_directories(${THIRD_PARTY_DIR}/DirectXTex/build/bin/CMake/${TRIAL_OUTDIR_END_SUFFIX}
+  ${CMAKE_CURRENT_BINARY_DIR}/glfw/src/${CMAKE_BUILD_TYPE})
 
 else()
   message(FATAL_ERROR "Build type unspecified!")
@@ -70,6 +71,10 @@ if(MSVC)
 add_compile_definitions("UNICODE" "_UNICODE")
 add_link_options("/NODEFAULTLIB:libcmt.lib")
 endif(MSVC)
+
+if(WIN32)
+add_compile_definitions("WIN32_LEAN_AND_MEAN")
+endif(WIN32)
 
 add_subdirectory(VkHelloWorld)
 add_subdirectory(Common)

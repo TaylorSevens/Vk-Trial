@@ -6,9 +6,14 @@ set(SOURCE_FILE_LIST
   VkTexture.cpp
   VkUploadBuffer.cpp
   VkUtilities.cpp
-  VulkanApp.cpp
+  VulkanRenderContext.cpp
+  VulkanRenderContext.hpp
   Camera.cpp
+  Camera.hpp
   GameTimer.cpp
+  GameTimer.hpp
+  GeometryGenerator.cpp
+  GeometryGenerator.hpp
 )
 
 add_library(Common

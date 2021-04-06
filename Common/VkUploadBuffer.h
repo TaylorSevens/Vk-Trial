@@ -9,25 +9,25 @@ public:
 
   VKHRESULT CreateBuffer(
     VkDevice pDevice,
-    UINT uElementCount,
-    UINT cbElement,
-    BOOL bIsConstant
+    size_t uElementCount,
+    size_t cbElement,
+    bool bIsConstant
   );
 
-  VOID FreeBuffer();
+  void FreeBuffer();
 
-  VOID CopyData(const void *pBuffer, UINT cbBuffer, UINT iIndex);
+  void CopyData(const void *pBuffer, size_t cbBuffer, int32_t iIndex);
 
   VkBuffer GetResource() const;
 
-  UINT GetBufferSize() const;
+  size_t GetBufferSize() const;
 
 private:
   VkBuffer        m_pUploadBuffer;
   VMAHandle       m_pUploadBufferMem;
-  BYTE            *m_pMappedData;
-  UINT            m_cbPerElement;
-  UINT            m_uElementCount;
-  UINT            m_cbElementStride;
+  char            *m_pMappedData;
+  size_t          m_cbPerElement;
+  size_t          m_uElementCount;
+  size_t          m_cbElementStride;
 };
 

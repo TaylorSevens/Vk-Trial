@@ -1,14 +1,13 @@
 #include "VkUtilities.h"
 #include <string.h>
-#include <Windows.h>
-
-#undef min
-#undef max
-
 #include <algorithm>
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
-#include "DirectXTex.h"
+#include <cstdarg>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #pragma warning(disable: 4098)
 
@@ -20,14 +19,14 @@ struct VulkanResoureBindingConfig {
 
 #ifdef _WIN32
 void vkUtilsTrace(const char* fmt, ...) {
-    char buff[1024];
+  char buff[1024];
 
-    va_list vlist;
-    va_start(vlist, fmt);
-    vsnprintf(buff, _countof(buff), fmt, vlist);
-    va_end(vlist);
+  va_list vlist;
+  va_start(vlist, fmt);
+  vsnprintf(buff, _countof(buff), fmt, vlist);
+  va_end(vlist);
 
-    OutputDebugStringA(buff);
+  OutputDebugStringA(buff);
 }
 #else
 void vkUtilsTrace(const char *fmt, ...) {
@@ -254,7 +253,7 @@ VKHRESULT CreateDefaultBuffer(
   return hr;
 }
 
-UINT CalcUniformBufferByteSize(UINT uByteSize) {
+uint32_t CalcUniformBufferByteSize(uint32_t uByteSize) {
   return (uByteSize + g_aResourceBindingConfig.MinUniformBufferOffsetAlignment - 1) &
     (~(g_aResourceBindingConfig.MinUniformBufferOffsetAlignment - 1));
 }
@@ -265,7 +264,7 @@ VKHRESULT CreateUploadBuffer(
   VkBufferUsageFlags bufferUsage,
   VkBuffer *ppUploadBuffer,
   VMAHandle *ppUploadMem,
-  _Out_opt_ VOID ** ppMappedData
+  _Out_opt_ void ** ppMappedData
 ) {
 
   VKHRESULT hr;

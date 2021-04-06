@@ -2,12 +2,10 @@
 #define __VK_UTILITIES_H__
 
 #include <vulkan/vulkan.h>
-#include <crtdbg.h>
-#include <Windows.h>
 
 #include "Common.h"
 
-typedef HRESULT VKHRESULT;
+typedef long VKHRESULT;
 
 struct VMAHandle_T {};
 
@@ -121,7 +119,7 @@ VKHRESULT CreateDefaultBuffer(
   VMAHandle *ppDefaultMem
 );
 
-extern UINT CalcUniformBufferByteSize(UINT uByteSize);
+extern uint32_t CalcUniformBufferByteSize(uint32_t uByteSize);
 
 ///
 /// Before call this function, call `CalcUniformBufferByteSize` to compute the
@@ -134,7 +132,7 @@ VKHRESULT CreateUploadBuffer(
   VkBufferUsageFlags bufferUsage,
   VkBuffer *ppUploadBuffer,
   VMAHandle *ppUploadMem,
-  _Out_opt_ VOID **ppMappedData
+  _Out_opt_ void **ppMappedData
 );
 
 extern

@@ -2,6 +2,8 @@ project(VkHelloWorld VERSION 0.1.0)
 
 set(src_files
   Cube.cpp
+  Sample.cpp
+  main.cpp
 )
 
 add_executable(${PROJECT_NAME}
@@ -11,7 +13,7 @@ target_link_libraries(
   ${PROJECT_NAME}
   Common
   DirectXTex
-  ${glfw_LIBRARIES}
+  glfw3
   ${Vulkan_LIBRARIES}
 )
 

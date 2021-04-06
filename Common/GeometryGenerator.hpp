@@ -12,108 +12,66 @@
 //   3. Update the texture coordinates and tangent vectors.
 //***************************************************************************************
 
-#pragma once
-
+#ifndef __GEOMETRY_GENERATOR_HPP__
+#define __GEOMETRY_GENERATOR_HPP__
 #include <cstdint>
-#include <DirectXMath.h>
 #include <vector>
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
 
-template<bool HasTangentU = true>
-class GeometryGeneratorT
+namespace GeometryGenerator
 {
-public:
+    using uint16 = std::uint16_t;
+    using uint32 = std::uint32_t;
 
-  using uint16 = std::uint16_t;
-  using uint32 = std::uint32_t;
-
-  template<bool HasTangentU>
-  struct VertexT {};
-
-  template<>
-	struct VertexT<true>
+	struct Vertex
 	{
-		VertexT(){}
-    VertexT(
-        const DirectX::XMFLOAT3& p, 
-        const DirectX::XMFLOAT3& n, 
-        const DirectX::XMFLOAT3& t, 
-        const DirectX::XMFLOAT2& uv) :
-        Position(p), 
-        Normal(n), 
-        TangentU(t), 
-        TexC(uv){}
-		VertexT(
+		Vertex(){}
+        Vertex(
+            const glm::vec3& p, 
+            const glm::vec3& n, 
+            const glm::vec3& t, 
+            const glm::vec2& uv) :
+            Position(p), 
+            Normal(n), 
+            TangentU(t), 
+            TexC(uv){}
+		Vertex(
 			float px, float py, float pz, 
 			float nx, float ny, float nz,
 			float tx, float ty, float tz,
 			float u, float v) : 
             Position(px,py,pz), 
             Normal(nx,ny,nz),
-			      TangentU(tx, ty, tz), 
+			TangentU(tx, ty, tz), 
             TexC(u,v){}
 
-    void SetTangentU(const DirectX::XMFLOAT3 &TangentU) {
-      this->TangentU = TangentU;
-    }
+        glm::vec3 Position;
+        glm::vec3 Normal;
+        glm::vec3 TangentU;
+        glm::vec2 TexC;
+	};
 
-    DirectX::XMFLOAT3 Position;
-    DirectX::XMFLOAT3 Normal;
-    DirectX::XMFLOAT3 TangentU;
-    DirectX::XMFLOAT2 TexC;
-  };
-
-  template<>
-  struct VertexT<false> {
-    VertexT() {}
-    VertexT(
-      const DirectX::XMFLOAT3& p,
-      const DirectX::XMFLOAT3& n,
-      const DirectX::XMFLOAT3& t,
-      const DirectX::XMFLOAT2& uv) :
-      Position(p),
-      Normal(n),
-      TexC(uv) {}
-    VertexT(
-      float px, float py, float pz,
-      float nx, float ny, float nz,
-      float tx, float ty, float tz,
-      float u, float v) :
-      Position(px, py, pz),
-      Normal(nx, ny, nz),
-      TexC(u, v) {}
-
-    void SetTangentU(const DirectX::XMFLOAT3 &TangentU) {
-    }
-
-    DirectX::XMFLOAT3 Position;
-    DirectX::XMFLOAT3 Normal;
-    DirectX::XMFLOAT2 TexC;
-  };
-
-  typedef VertexT<HasTangentU> Vertex;
-
-  template<bool HasTangentU>
-	struct MeshDataT
+	struct MeshData
 	{
-	std::vector<VertexT<HasTangentU>> Vertices;
-  std::vector<uint32> Indices32;
+		std::vector<Vertex> Vertices;
+        std::vector<uint32> Indices32;
 
-  std::vector<uint16>& GetIndices16()
-  {
-    if (mIndices16.empty()) {
-      mIndices16.resize(Indices32.size());
-      for (size_t i = 0; i < Indices32.size(); ++i)
-        mIndices16[i] = static_cast<uint16>(Indices32[i]);
-    }
+        std::vector<uint16>& GetIndices16()
+        {
+			if(mIndices16.empty())
+			{
+				mIndices16.resize(Indices32.size());
+				for(size_t i = 0; i < Indices32.size(); ++i)
+					mIndices16[i] = static_cast<uint16>(Indices32[i]);
+			}
 
-    return mIndices16;
-  }
+			return mIndices16;
+        }
 
 	private:
 		std::vector<uint16> mIndices16;
-  };
-
-  typedef MeshDataT<HasTangentU> MeshData;
+	};
 
 	///<summary>
 	/// Creates a box centered at the origin with the given dimensions, where each
@@ -150,16 +108,7 @@ public:
 	/// Creates a quad aligned with the screen.  This is useful for postprocessing and screen effects.
 	///</summary>
     MeshData CreateQuad(float x, float y, float w, float h, float depth);
-
-private:
-	void Subdivide(MeshData& meshData);
-    Vertex MidPoint(const Vertex& v0, const Vertex& v1);
-    void BuildCylinderTopCap(float bottomRadius, float topRadius, float height, uint32 sliceCount, uint32 stackCount, MeshData& meshData);
-    void BuildCylinderBottomCap(float bottomRadius, float topRadius, float height, uint32 sliceCount, uint32 stackCount, MeshData& meshData);
 };
 
-#include "GeometryGenerator.inl"
 
-typedef GeometryGeneratorT<true> GeometryGenerator;
-typedef GeometryGeneratorT<false> GeometryGenerator2;
-
+#endif /* __GEOMETRY_GENERATOR__ */

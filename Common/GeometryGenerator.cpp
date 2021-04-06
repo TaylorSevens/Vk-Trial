@@ -2,13 +2,19 @@
 // GeometryGenerator.cpp by Frank Luna (C) 2011 All Rights Reserved.
 //***************************************************************************************
 
-//#include "GeometryGenerator.h"
+#include "GeometryGenerator.hpp"
+#include <glm/gtc/constants.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
 
-using namespace DirectX;
+namespace GeometryGenerator {
+  static void Subdivide(MeshData& meshData);
+  static Vertex MidPoint(const Vertex& v0, const Vertex& v1);
+  static void BuildCylinderTopCap(float bottomRadius, float topRadius, float height, uint32 sliceCount, uint32 stackCount, MeshData& meshData);
+  static void BuildCylinderBottomCap(float bottomRadius, float topRadius, float height, uint32 sliceCount, uint32 stackCount, MeshData& meshData);
+};
 
-template<bool HasTangentU>
-typename GeometryGeneratorT<HasTangentU>::MeshData GeometryGeneratorT<HasTangentU>::CreateBox(float width, float height, float depth, uint32 numSubdivisions)
+GeometryGenerator::MeshData GeometryGenerator::CreateBox(float width, float height, float depth, uint32 numSubdivisions)
 {
     MeshData meshData;
 
@@ -101,8 +107,7 @@ typename GeometryGeneratorT<HasTangentU>::MeshData GeometryGeneratorT<HasTangent
     return meshData;
 }
 
-template<bool HasTangentU>
-typename GeometryGeneratorT<HasTangentU>::MeshData GeometryGeneratorT<HasTangentU>::CreateSphere(float radius, uint32 sliceCount, uint32 stackCount)
+GeometryGenerator::MeshData GeometryGenerator:: CreateSphere(float radius, uint32 sliceCount, uint32 stackCount)
 {
     MeshData meshData;
 
@@ -118,8 +123,8 @@ typename GeometryGeneratorT<HasTangentU>::MeshData GeometryGeneratorT<HasTangent
 
 	meshData.Vertices.push_back( topVertex );
 
-	float phiStep   = XM_PI/stackCount;
-	float thetaStep = 2.0f*XM_PI/sliceCount;
+	float phiStep   = glm::pi<float>()/stackCount;
+	float thetaStep = 2.0f*glm::pi<float>()/sliceCount;
 
 	// Compute vertices for each stack ring (do not count the poles as rings).
 	for(uint32 i = 1; i <= stackCount-1; ++i)
@@ -132,7 +137,6 @@ typename GeometryGeneratorT<HasTangentU>::MeshData GeometryGeneratorT<HasTangent
 			float theta = j*thetaStep;
 
 			Vertex v;
-      XMFLOAT3 tangentU;
 
 			// spherical to cartesian
 			v.Position.x = radius*sinf(phi)*cosf(theta);
@@ -140,20 +144,15 @@ typename GeometryGeneratorT<HasTangentU>::MeshData GeometryGeneratorT<HasTangent
 			v.Position.z = radius*sinf(phi)*sinf(theta);
 
 			// Partial derivative of P with respect to theta
-      XMVECTOR T = XMVectorSet(
-        -radius * sinf(phi)*sinf(theta),
-        0.0f,
-        +radius * sinf(phi)*cosf(theta),
-        .0f);
+			v.TangentU.x = -radius*sinf(phi)*sinf(theta);
+			v.TangentU.y = 0.0f;
+			v.TangentU.z = +radius*sinf(phi)*cosf(theta);
 
-			XMStoreFloat3(&tangentU, XMVector3Normalize(T));
-      v.SetTangentU(tangentU);
+      v.TangentU = glm::normalize(v.TangentU);
+      v.Normal = glm::normalize(v.Position);
 
-			XMVECTOR p = XMLoadFloat3(&v.Position);
-			XMStoreFloat3(&v.Normal, XMVector3Normalize(p));
-
-			v.TexC.x = theta / XM_2PI;
-			v.TexC.y = phi / XM_PI;
+			v.TexC.x = theta / glm::two_pi<float>();
+			v.TexC.y = phi / glm::pi<float>();
 
 			meshData.Vertices.push_back( v );
 		}
@@ -215,9 +214,8 @@ typename GeometryGeneratorT<HasTangentU>::MeshData GeometryGeneratorT<HasTangent
 
     return meshData;
 }
-
-template<bool HasTangentU>
-void  GeometryGeneratorT<HasTangentU>::Subdivide(MeshData& meshData)
+ 
+void GeometryGenerator::Subdivide(MeshData& meshData)
 {
 	// Save a copy of the input geometry.
 	MeshData inputCopy = meshData;
@@ -280,39 +278,18 @@ void  GeometryGeneratorT<HasTangentU>::Subdivide(MeshData& meshData)
 	}
 }
 
-template<bool HasTangentU> 
-typename GeometryGeneratorT<HasTangentU>::Vertex GeometryGeneratorT<HasTangentU>::MidPoint(const Vertex& v0, const Vertex& v1)
+GeometryGenerator::Vertex GeometryGenerator::MidPoint(const Vertex& v0, const Vertex& v1)
 {
-    XMVECTOR p0 = XMLoadFloat3(&v0.Position);
-    XMVECTOR p1 = XMLoadFloat3(&v1.Position);
+  Vertex v;
+  v.Position = (v0.Position + v1.Position) * 0.5f;
+  v.Normal = glm::normalize(v0.Normal + v1.Normal);
+  v.TangentU = glm::normalize(v0.TangentU + v1.TangentU);
+  v.TexC = (v0.TexC + v1.TexC) * 0.5f;
 
-    XMVECTOR n0 = XMLoadFloat3(&v0.Normal);
-    XMVECTOR n1 = XMLoadFloat3(&v1.Normal);
-
-    XMVECTOR tan0 = XMLoadFloat3(&v0.TangentU);
-    XMVECTOR tan1 = XMLoadFloat3(&v1.TangentU);
-
-    XMVECTOR tex0 = XMLoadFloat2(&v0.TexC);
-    XMVECTOR tex1 = XMLoadFloat2(&v1.TexC);
-
-    // Compute the midpoints of all the attributes.  Vectors need to be normalized
-    // since linear interpolating can make them not unit length.  
-    XMVECTOR pos = 0.5f*(p0 + p1);
-    XMVECTOR normal = XMVector3Normalize(0.5f*(n0 + n1));
-    XMVECTOR tangent = XMVector3Normalize(0.5f*(tan0+tan1));
-    XMVECTOR tex = 0.5f*(tex0 + tex1);
-
-    Vertex v;
-    XMStoreFloat3(&v.Position, pos);
-    XMStoreFloat3(&v.Normal, normal);
-    XMStoreFloat3(&v.TangentU, tangent);
-    XMStoreFloat2(&v.TexC, tex);
-
-    return v;
+  return v;
 }
 
-template<bool HasTangentU>
-typename GeometryGeneratorT<HasTangentU>::MeshData GeometryGeneratorT<HasTangentU>::CreateGeosphere(float radius, uint32 numSubdivisions)
+GeometryGenerator::MeshData GeometryGenerator::CreateGeosphere(float radius, uint32 numSubdivisions)
 {
     MeshData meshData;
 
@@ -324,14 +301,14 @@ typename GeometryGeneratorT<HasTangentU>::MeshData GeometryGeneratorT<HasTangent
 	const float X = 0.525731f; 
 	const float Z = 0.850651f;
 
-	XMFLOAT3 pos[12] = 
+	glm::vec3 pos[12] = 
 	{
-		XMFLOAT3(-X, 0.0f, Z),  XMFLOAT3(X, 0.0f, Z),  
-		XMFLOAT3(-X, 0.0f, -Z), XMFLOAT3(X, 0.0f, -Z),    
-		XMFLOAT3(0.0f, Z, X),   XMFLOAT3(0.0f, Z, -X), 
-		XMFLOAT3(0.0f, -Z, X),  XMFLOAT3(0.0f, -Z, -X),    
-		XMFLOAT3(Z, X, 0.0f),   XMFLOAT3(-Z, X, 0.0f), 
-		XMFLOAT3(Z, -X, 0.0f),  XMFLOAT3(-Z, -X, 0.0f)
+		glm::vec3(-X, 0.0f, Z),  glm::vec3(X, 0.0f, Z),  
+		glm::vec3(-X, 0.0f, -Z), glm::vec3(X, 0.0f, -Z),    
+		glm::vec3(0.0f, Z, X),   glm::vec3(0.0f, Z, -X), 
+		glm::vec3(0.0f, -Z, X),  glm::vec3(0.0f, -Z, -X),    
+		glm::vec3(Z, X, 0.0f),   glm::vec3(-Z, X, 0.0f), 
+		glm::vec3(Z, -X, 0.0f),  glm::vec3(-Z, -X, 0.0f)
 	};
 
     uint32 k[60] =
@@ -355,40 +332,34 @@ typename GeometryGeneratorT<HasTangentU>::MeshData GeometryGeneratorT<HasTangent
 	for(uint32 i = 0; i < meshData.Vertices.size(); ++i)
 	{
 		// Project onto unit sphere.
-		XMVECTOR n = XMVector3Normalize(XMLoadFloat3(&meshData.Vertices[i].Position));
-
-		// Project onto sphere.
-		XMVECTOR p = radius*n;
-
-		XMStoreFloat3(&meshData.Vertices[i].Position, p);
-		XMStoreFloat3(&meshData.Vertices[i].Normal, n);
+    auto n = glm::normalize(meshData.Vertices[i].Position);
+    meshData.Vertices[i].Position = n * radius;
+    meshData.Vertices[i].Normal = n;
 
 		// Derive texture coordinates from spherical coordinates.
         float theta = atan2f(meshData.Vertices[i].Position.z, meshData.Vertices[i].Position.x);
 
         // Put in [0, 2pi].
         if(theta < 0.0f)
-            theta += XM_2PI;
+            theta += glm::two_pi<float>();
 
 		float phi = acosf(meshData.Vertices[i].Position.y / radius);
 
-		meshData.Vertices[i].TexC.x = theta/XM_2PI;
-		meshData.Vertices[i].TexC.y = phi/XM_PI;
+		meshData.Vertices[i].TexC.x = theta/glm::two_pi<float>();
+		meshData.Vertices[i].TexC.y = phi/glm::pi<float>();
 
 		// Partial derivative of P with respect to theta
 		meshData.Vertices[i].TangentU.x = -radius*sinf(phi)*sinf(theta);
 		meshData.Vertices[i].TangentU.y = 0.0f;
 		meshData.Vertices[i].TangentU.z = +radius*sinf(phi)*cosf(theta);
 
-		XMVECTOR T = XMLoadFloat3(&meshData.Vertices[i].TangentU);
-		XMStoreFloat3(&meshData.Vertices[i].TangentU, XMVector3Normalize(T));
+    meshData.Vertices[i].TangentU = glm::normalize(meshData.Vertices[i].TangentU);
 	}
 
     return meshData;
 }
 
-template<bool HasTangentU>
-typename GeometryGeneratorT<HasTangentU>::MeshData GeometryGeneratorT<HasTangentU>::CreateCylinder(float bottomRadius, float topRadius, float height, uint32 sliceCount, uint32 stackCount)
+GeometryGenerator::MeshData GeometryGenerator::CreateCylinder(float bottomRadius, float topRadius, float height, uint32 sliceCount, uint32 stackCount)
 {
     MeshData meshData;
 
@@ -410,7 +381,7 @@ typename GeometryGeneratorT<HasTangentU>::MeshData GeometryGeneratorT<HasTangent
 		float r = bottomRadius + i*radiusStep;
 
 		// vertices of ring
-		float dTheta = 2.0f*XM_PI/sliceCount;
+		float dTheta = 2.0f*glm::pi<float>()/sliceCount;
 		for(uint32 j = 0; j <= sliceCount; ++j)
 		{
 			Vertex vertex;
@@ -418,7 +389,7 @@ typename GeometryGeneratorT<HasTangentU>::MeshData GeometryGeneratorT<HasTangent
 			float c = cosf(j*dTheta);
 			float s = sinf(j*dTheta);
 
-			vertex.Position = XMFLOAT3(r*c, y, r*s);
+			vertex.Position = glm::vec3(r*c, y, r*s);
 
 			vertex.TexC.x = (float)j/sliceCount;
 			vertex.TexC.y = 1.0f - (float)i/stackCount;
@@ -443,15 +414,11 @@ typename GeometryGeneratorT<HasTangentU>::MeshData GeometryGeneratorT<HasTangent
 			//  dz/dv = (r0-r1)*sin(t)
 
 			// This is unit length.
-			vertex.TangentU = XMFLOAT3(-s, 0.0f, c);
+			vertex.TangentU = glm::vec3(-s, 0.0f, c);
 
 			float dr = bottomRadius-topRadius;
-			XMFLOAT3 bitangent(dr*c, -height, dr*s);
-
-			XMVECTOR T = XMLoadFloat3(&vertex.TangentU);
-			XMVECTOR B = XMLoadFloat3(&bitangent);
-			XMVECTOR N = XMVector3Normalize(XMVector3Cross(T, B));
-			XMStoreFloat3(&vertex.Normal, N);
+			glm::vec3 bitangent(dr*c, -height, dr*s);
+      vertex.Normal = glm::normalize(glm::cross(vertex.TangentU, bitangent));
 
 			meshData.Vertices.push_back(vertex);
 		}
@@ -482,14 +449,13 @@ typename GeometryGeneratorT<HasTangentU>::MeshData GeometryGeneratorT<HasTangent
     return meshData;
 }
 
-template<bool HasTangentU>
-void  GeometryGeneratorT<HasTangentU>::BuildCylinderTopCap(float bottomRadius, float topRadius, float height,
+void GeometryGenerator::BuildCylinderTopCap(float bottomRadius, float topRadius, float height,
 											uint32 sliceCount, uint32 stackCount, MeshData& meshData)
 {
 	uint32 baseIndex = (uint32)meshData.Vertices.size();
 
 	float y = 0.5f*height;
-	float dTheta = 2.0f*XM_PI/sliceCount;
+	float dTheta = 2.0f*glm::pi<float>()/sliceCount;
 
 	// Duplicate cap ring vertices because the texture coordinates and normals differ.
 	for(uint32 i = 0; i <= sliceCount; ++i)
@@ -519,8 +485,7 @@ void  GeometryGeneratorT<HasTangentU>::BuildCylinderTopCap(float bottomRadius, f
 	}
 }
 
-template<bool HasTangentU>
-void  GeometryGeneratorT<HasTangentU>::BuildCylinderBottomCap(float bottomRadius, float topRadius, float height,
+void GeometryGenerator::BuildCylinderBottomCap(float bottomRadius, float topRadius, float height,
 											   uint32 sliceCount, uint32 stackCount, MeshData& meshData)
 {
 	// 
@@ -531,7 +496,7 @@ void  GeometryGeneratorT<HasTangentU>::BuildCylinderBottomCap(float bottomRadius
 	float y = -0.5f*height;
 
 	// vertices of ring
-	float dTheta = 2.0f*XM_PI/sliceCount;
+	float dTheta = 2.0f*glm::pi<float>()/sliceCount;
 	for(uint32 i = 0; i <= sliceCount; ++i)
 	{
 		float x = bottomRadius*cosf(i*dTheta);
@@ -559,8 +524,7 @@ void  GeometryGeneratorT<HasTangentU>::BuildCylinderBottomCap(float bottomRadius
 	}
 }
 
-template<bool HasTangentU>
-typename GeometryGeneratorT<HasTangentU>::MeshData GeometryGeneratorT<HasTangentU>::CreateGrid(float width, float depth, uint32 m, uint32 n)
+GeometryGenerator::MeshData GeometryGenerator::CreateGrid(float width, float depth, uint32 m, uint32 n)
 {
     MeshData meshData;
 
@@ -588,9 +552,9 @@ typename GeometryGeneratorT<HasTangentU>::MeshData GeometryGeneratorT<HasTangent
 		{
 			float x = -halfWidth + j*dx;
 
-			meshData.Vertices[i*n+j].Position = XMFLOAT3(x, 0.0f, z);
-			meshData.Vertices[i*n+j].Normal   = XMFLOAT3(0.0f, 1.0f, 0.0f);
-			meshData.Vertices[i*n+j].SetTangentU(XMFLOAT3(1.0f, 0.0f, 0.0f));
+			meshData.Vertices[i*n+j].Position = glm::vec3(x, 0.0f, z);
+			meshData.Vertices[i*n+j].Normal   = glm::vec3(0.0f, 1.0f, 0.0f);
+			meshData.Vertices[i*n+j].TangentU = glm::vec3(1.0f, 0.0f, 0.0f);
 
 			// Stretch texture over grid.
 			meshData.Vertices[i*n+j].TexC.x = j*du;
@@ -625,8 +589,7 @@ typename GeometryGeneratorT<HasTangentU>::MeshData GeometryGeneratorT<HasTangent
     return meshData;
 }
 
-template<bool HasTangentU>
-typename GeometryGeneratorT<HasTangentU>::MeshData GeometryGeneratorT<HasTangentU>::CreateQuad(float x, float y, float w, float h, float depth)
+GeometryGenerator::MeshData GeometryGenerator::CreateQuad(float x, float y, float w, float h, float depth)
 {
     MeshData meshData;
 

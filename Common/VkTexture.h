@@ -36,7 +36,7 @@ private:
   uint32_t m_uMipLevels;
   uint32_t m_uLayerCount;
 
-  BOOL m_bIsCubeMap;
-  BOOL m_bIsVolumeMap;
+  bool m_bIsCubeMap;
+  bool m_bIsVolumeMap;
 };
 
