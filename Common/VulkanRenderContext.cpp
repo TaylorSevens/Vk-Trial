@@ -410,7 +410,7 @@ VKHRESULT VulkanRenderContext::CreateLogicalDevice() {
 
 VKHRESULT VulkanRenderContext::CreateWindowSurface(void *pOpacHandle) {
 
-  HRESULT hr;
+  VKHRESULT hr;
 #ifdef _WIN32
   VkWin32SurfaceCreateInfoKHR createInfo = {};
   createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
