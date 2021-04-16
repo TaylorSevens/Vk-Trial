@@ -17,7 +17,7 @@ DebugMessageCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                      VkDebugUtilsMessageTypeFlagsEXT messageTypes,
                      const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData);
 
-static const char *s_aValidationLayerNames[] = {"VK_LAYER_LUNARG_standard_validation"};
+static const char *s_aValidationLayerNames[] = {"VK_LAYER_KHRONOS_validation"};
 
 static const char *const s_aDeviceExtensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
@@ -61,9 +61,9 @@ VKHRESULT VulkanRenderContext::InitVulkan() {
 
   VKHRESULT hr;
 
-  //#ifdef _DEBUG
-  //  V_RETURN(SetDebugCallback());
-  //#endif
+#ifdef _DEBUG
+  V_RETURN(SetDebugCallback());
+#endif
 
   V_RETURN(PickPhysicalDevice());
 
@@ -208,9 +208,9 @@ void VulkanRenderContext::Cleanup() {
     V(-1);
   }
 
-  //#ifdef _DEBUG
-  //  DestroyDebugUtilsMessengerEXT(m_pVkInstance, m_pDebugMessenger, nullptr);
-  //#endif
+#ifdef _DEBUG
+  DestroyDebugUtilsMessengerEXT(m_pVkInstance, m_pDebugMessenger, nullptr);
+#endif
 
   DestroyVmaAllocator();
 

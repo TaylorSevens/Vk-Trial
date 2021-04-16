@@ -5,7 +5,7 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${VULKAN_SDK}/Include",
-                "${workspaceFolder}/../ThirdParty",
+                "${workspaceFolder}/../ThirdParty/**"
             ],
             "defines": [
                 "_DEBUG",
